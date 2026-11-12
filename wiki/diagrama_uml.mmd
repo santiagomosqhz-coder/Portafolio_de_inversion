@@ -1,0 +1,314 @@
+classDiagram
+  class Almacen {
+    +cargar()
+    +cargar_cdt()
+    +guardar()
+    +guardar_cdt()
+  }
+  class AnalisisPortafolio {
+    +date fecha_calculo
+    +List~Posicion~ posiciones
+    +List~InversionRentaFija~ renta_fija
+    +Dict~str  Resumen~ resumenes
+    +Dict~str  DataFrame~ evolucion
+    +List~str~ advertencias
+    +Dict~str  str~ errores
+    +Dict~str  Tuple~str  datetime~~ fuentes
+    +esta_completo
+  }
+  class CalculadoraRentabilidad {
+    +rentabilidad_simple()
+    +xirr()
+    +rentabilidad_ea()
+  }
+  class Cartera {
+    +Portafolio portafolio
+    +ServicioPrecios servicio
+    +saldo()
+    +datos_en_cop()
+    +preparar_compra()
+    +registrar_compra()
+    +preparar_ventas_pendientes()
+    +registrar_ventas()
+    +estado()
+  }
+  class Cdt {
+    +float monto
+    +float tasa_ea
+    +str fuente
+    +date fecha_tasa
+    +str id
+    +validar()
+    +rentabilidad_diaria
+    +ganancia_diaria
+    +ganancia_anual_estimada
+    +a_dict()
+    +desde_dict()
+  }
+  class Configuracion {
+    +Path ruta_datos
+    +Optional~str~ alphavantage_clave
+    +cargar()
+  }
+  class DatosMercado {
+    +str simbolo
+    +Series cierres
+    +Series dividendos
+    +Series splits
+    +Optional~str~ moneda
+    +Optional~str~ nombre
+    +str fuente
+    +datetime consultado_en
+    +bool soporta_dividendos
+    +bool soporta_splits
+    +precio_en()
+    +lista_splits
+    +lista_dividendos
+  }
+  class Empresa {
+    +str nombre
+    +str simbolo
+    +todas()
+    +por_simbolo()
+    +por_nombre()
+  }
+  class ErrorPrecios {
+  }
+  class EstadoCartera {
+    +date hoy
+    +float saldo
+    +List~Lote~ lotes
+    +Dict~str  str~ errores
+    +Optional~str~ fuente
+    +Optional~datetime~ consultado_en
+    +abiertas
+    +cerradas
+    +valor_abiertas
+    +valor_total
+    +realizada
+    +no_realizada
+    +esta_completo
+  }
+  class GraficaInteractiva {
+    +Optional~Callable~~date  float  Optional~flo al_seleccionar
+    +limpiar()
+    +mostrar()
+    +seleccionar()
+  }
+  class InterfazGrafica {
+    +tk.Tk raiz
+    +Cartera cartera
+    +Optional~EstadoCartera~ estado
+  }
+  class InversionRentaFija {
+    +str tipo
+    +str nombre
+    +date fecha_compra
+    +float capital
+    +float tasa_ea
+    +date fecha_vencimiento
+    +float comision
+    +str moneda
+    +Optional~float~ valor_mercado
+    +Optional~date~ fecha_valor_mercado
+    +Optional~date~ fecha_venta
+    +Optional~float~ valor_venta
+    +float comision_venta
+    +str id
+    +validar()
+    +costo
+    +valor_causado()
+    +valor_al_vencimiento
+    +estado()
+    +valor_actual()
+    +valor_vigente()
+    +ganancia()
+    +es_realizada()
+    +flujos()
+    +a_dict()
+    +desde_dict()
+  }
+  class Lote {
+    +str empresa
+    +str simbolo
+    +Operacion compra
+    +Optional~Operacion~ venta
+    +float acciones
+    +Optional~float~ precio_actual
+    +Optional~date~ fecha_precio
+    +abierta
+    +fecha_venta_prevista
+    +costo
+    +valor_actual
+    +dinero_recibido
+    +ganancia_no_realizada
+    +ganancia_realizada
+    +ganancia
+    +rentabilidad
+  }
+  class Operacion {
+    +str simbolo
+    +str tipo
+    +date fecha
+    +float cantidad
+    +float precio
+    +float comision
+    +str moneda
+    +str id
+    +Optional~date~ fecha_venta_prevista
+    +Optional~str~ compra_id
+    +validar()
+    +monto_bruto
+    +es_compra
+    +flujo_caja
+    +a_dict()
+    +desde_dict()
+  }
+  class Portafolio {
+    +Almacen almacen
+    +List~Operacion~ operaciones
+    +List~InversionRentaFija~ renta_fija
+    +List~Cdt~ cdts
+    +simbolos
+    +registrar_operacion()
+    +eliminar_operacion()
+    +registrar_renta_fija()
+    +actualizar_renta_fija()
+    +eliminar_renta_fija()
+    +registrar_cdt()
+    +eliminar_cdt()
+    +factor_split()
+    +analizar()
+  }
+  class Posicion {
+    +str simbolo
+    +str moneda
+    +Optional~str~ nombre
+    +float cantidad
+    +float costo_abierto
+    +float precio_actual
+    +date fecha_precio
+    +float total_comprado
+    +float ventas_netas
+    +float costo_vendido
+    +float realizada
+    +float dividendos
+    +List~Tuple~date  float~~ flujos
+    +esta_abierta
+    +costo_promedio
+    +valor_actual
+    +no_realizada
+    +no_realizada_pct
+    +realizada_pct
+    +ganancia_total
+    +rentabilidad_acumulada
+    +rentabilidad_ea
+  }
+  class ProveedorAlphaVantage {
+    +obtener()
+  }
+  class ProveedorCOP {
+    +ProveedorPrecios base
+    +str simbolo_fx
+    +str moneda_por_defecto
+    +obtener()
+  }
+  class ProveedorPrecios {
+    +str nombre
+    +bool requiere_clave
+    +obtener()
+  }
+  class ProveedorYahoo {
+    +obtener()
+  }
+  class Resumen {
+    +str moneda
+    +float invertido_rv
+    +float invertido_rf
+    +float valor_rv
+    +float valor_rf
+    +float realizada_rv
+    +float realizada_rf
+    +float no_realizada_rv
+    +float no_realizada_rf
+    +float dividendos
+    +Optional~float~ rentabilidad_ea
+    +int dias
+    +total_invertido
+    +valor_actual
+    +realizada
+    +no_realizada
+    +ganancia_rv
+    +ganancia_rf
+    +ganancia_total
+    +rentabilidad_acumulada
+    +pct_rv
+    +pct_rf
+  }
+  class ServicioPrecios {
+    +List~ProveedorPrecios~ proveedores
+    +obtener()
+    +limpiar()
+  }
+  class TareaSegundoPlano {
+    +ejecutar()
+  }
+  class Tema {
+    +color_resultado()
+  }
+  ProveedorPrecios <|-- ProveedorAlphaVantage
+  ProveedorPrecios <|-- ProveedorCOP
+  ProveedorPrecios <|-- ProveedorYahoo
+  AnalisisPortafolio o-- InversionRentaFija
+  AnalisisPortafolio o-- Posicion
+  AnalisisPortafolio o-- Resumen
+  Cartera o-- Portafolio
+  Cartera o-- ServicioPrecios
+  EstadoCartera o-- Lote
+  InterfazGrafica o-- Cartera
+  InterfazGrafica o-- EstadoCartera
+  Lote o-- Operacion
+  Portafolio o-- Almacen
+  Portafolio o-- Cdt
+  Portafolio o-- InversionRentaFija
+  Portafolio o-- Operacion
+  ProveedorCOP o-- ProveedorPrecios
+  ServicioPrecios o-- ProveedorPrecios
+  Almacen ..> Cdt
+  Almacen ..> InversionRentaFija
+  Almacen ..> Operacion
+  Cartera ..> DatosMercado
+  Cartera ..> Empresa
+  Cartera ..> ErrorPrecios
+  Cartera ..> EstadoCartera
+  Cartera ..> Lote
+  Cartera ..> Operacion
+  DatosMercado ..> ErrorPrecios
+  GraficaInteractiva ..> DatosMercado
+  GraficaInteractiva ..> Tema
+  InterfazGrafica ..> Cdt
+  InterfazGrafica ..> DatosMercado
+  InterfazGrafica ..> Empresa
+  InterfazGrafica ..> ErrorPrecios
+  InterfazGrafica ..> GraficaInteractiva
+  InterfazGrafica ..> Operacion
+  InterfazGrafica ..> Portafolio
+  InterfazGrafica ..> TareaSegundoPlano
+  InterfazGrafica ..> Tema
+  Portafolio ..> AnalisisPortafolio
+  Portafolio ..> CalculadoraRentabilidad
+  Portafolio ..> DatosMercado
+  Portafolio ..> ErrorPrecios
+  Portafolio ..> Posicion
+  Portafolio ..> Resumen
+  Portafolio ..> ServicioPrecios
+  Posicion ..> CalculadoraRentabilidad
+  ProveedorAlphaVantage ..> DatosMercado
+  ProveedorAlphaVantage ..> ErrorPrecios
+  ProveedorCOP ..> DatosMercado
+  ProveedorCOP ..> ErrorPrecios
+  ProveedorPrecios ..> DatosMercado
+  ProveedorYahoo ..> DatosMercado
+  ProveedorYahoo ..> ErrorPrecios
+  ServicioPrecios ..> DatosMercado
+  ServicioPrecios ..> ErrorPrecios
