@@ -58,4 +58,10 @@ class CalculadoraRentabilidad:
         return (bajo + alto) / 2
 
     @classmethod
+    def rentabilidad_ea(cls, flujos: Sequence[Flujo]) -> Optional[float]:
+        """XIRR si el historial cubre al menos DIAS_MINIMOS_EA días; si no, None."""
+        fechas: List[date] = [d for d, m in flujos if abs(m) > 1e-12]
+        if len(fechas) < 2 or (max(fechas) - min(fechas)).days < cls.DIAS_MINIMOS_EA:
+            return None
+        return cls.xirr(flujos)
 
