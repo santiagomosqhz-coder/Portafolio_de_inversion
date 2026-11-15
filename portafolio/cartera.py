@@ -27,4 +27,8 @@ class Cartera:
     def __init__(self, portafolio: Portafolio, servicio: ServicioPrecios):
         self.portafolio = portafolio
         self.servicio = servicio
+    def saldo(self) -> float:
+        """10.000.000 − compras + ventas (solo operaciones ya registradas)."""
+        return self.SALDO_INICIAL + sum(o.flujo_caja for o in self.portafolio.operaciones)
+
 
