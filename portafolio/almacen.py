@@ -12,3 +12,7 @@ from .renta_fija import InversionRentaFija
 
 
 class Almacen:
+    VERSION = 2
+
+    def __init__(self, ruta: Path):
+        self.ruta = Path(ruta)
