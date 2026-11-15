@@ -100,6 +100,36 @@ class Cartera:
             except ValueError as exc:
                 errores[venta.simbolo] = str(exc)
         return errores
+    def estado(self, hoy: Optional[date] = None) -> EstadoCartera:
+        """Saldo, posiciones abiertas (a precio actual) y cerradas, con sus ganancias."""
+        hoy = hoy or date.today()
+        ops = list(self.portafolio.operaciones)
+        ventas = {o.compra_id: o for o in ops if not o.es_compra and o.compra_id}
+        estado = EstadoCartera(hoy=hoy, saldo=self.SALDO_INICIAL + sum(o.flujo_caja for o in ops))
+
+        abiertas_por_simbolo: Dict[str, List[Lote]] = defaultdict(list)
+        for compra in sorted((o for o in ops if o.es_compra), key=lambda o: (o.fecha, o.id)):
+            empresa = Empresa.por_simbolo(compra.simbolo) or Empresa(compra.simbolo, compra.simbolo)
+            lote = Lote(empresa=empresa.nombre, simbolo=compra.simbolo, compra=compra,
+                        venta=ventas.get(compra.id), acciones=compra.cantidad)
+            estado.lotes.append(lote)
+            if lote.abierta:
+                abiertas_por_simbolo[compra.simbolo].append(lote)
+
+        for simbolo, lotes in abiertas_por_simbolo.items():
+            try:
+                datos = self.datos_en_cop(simbolo, min(l.compra.fecha for l in lotes), hoy)
+                fecha_precio, precio = datos.precio_en(hoy)
+            except (ErrorPrecios, ValueError) as exc:
+                estado.errores[lotes[0].empresa] = str(exc)
+                continue
+            for lote in lotes:
+                lote.acciones = lote.compra.cantidad * Portafolio.factor_split(datos.lista_splits, lote.compra.fecha)
+                lote.precio_actual, lote.fecha_precio = precio, fecha_precio
+            estado.fuente = datos.fuente
+            if estado.consultado_en is None or datos.consultado_en > estado.consultado_en:
+                estado.consultado_en = datos.consultado_en
+        return estado
 
 
 
