@@ -29,4 +29,21 @@ class Cdt:
         return (1.0 + self.tasa_ea) ** (1.0 / 365.0) - 1.0
 
     @property
+    def ganancia_diaria(self) -> float:
+        return self.monto * self.rentabilidad_diaria
+
+    @property
+    def ganancia_anual_estimada(self) -> float:
+        """Interés compuesto diario durante 365 días: equivale a monto × tasa E.A."""
+        return self.monto * ((1.0 + self.rentabilidad_diaria) ** 365 - 1.0)
+
+    def a_dict(self) -> dict:
+        return {"id": self.id, "monto": self.monto, "tasa_ea": self.tasa_ea,
+                "fuente": self.fuente, "fecha_tasa": self.fecha_tasa.isoformat()}
+
+    @classmethod
+    def desde_dict(cls, d: dict) -> "Cdt":
+        return cls(monto=float(d["monto"]), tasa_ea=float(d["tasa_ea"]), fuente=d["fuente"],
+                   fecha_tasa=date.fromisoformat(d["fecha_tasa"]), id=d["id"])
+
 
