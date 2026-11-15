@@ -92,5 +92,14 @@ class Cartera:
             except (ErrorPrecios, ValueError) as exc:
                 errores[nombre] = f"No se pudo registrar la venta del {compra.fecha_venta_prevista}: {exc}"
         return listas, errores
+    def registrar_ventas(self, ventas: List[VentaPendiente], hoy: Optional[date] = None) -> Dict[str, str]:
+        errores: Dict[str, str] = {}
+        for venta, splits in ventas:
+            try:
+                self.portafolio.registrar_operacion(venta, splits=splits, hoy=hoy)
+            except ValueError as exc:
+                errores[venta.simbolo] = str(exc)
+        return errores
+
 
 
