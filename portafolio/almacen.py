@@ -51,3 +51,10 @@ class Almacen:
             return [Cdt.desde_dict(d) for d in self._leer().get("cdt", [])]
         except (KeyError, TypeError, ValueError) as exc:
             raise ValueError(f"El archivo de datos {self.ruta} está dañado: {exc}") from exc
+
+
+    def guardar(self, operaciones: List[Operacion], renta_fija: List[InversionRentaFija]) -> None:
+        datos = self._leer()   # conserva lo demás (p. ej. los CDT)
+        datos["operaciones"] = [o.a_dict() for o in operaciones]
+        datos["renta_fija"] = [r.a_dict() for r in renta_fija]
+        self._escribir(datos)
