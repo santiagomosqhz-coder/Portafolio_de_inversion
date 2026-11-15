@@ -30,5 +30,11 @@ class Cartera:
     def saldo(self) -> float:
         """10.000.000 − compras + ventas (solo operaciones ya registradas)."""
         return self.SALDO_INICIAL + sum(o.flujo_caja for o in self.portafolio.operaciones)
+    
+    def datos_en_cop(self, simbolo: str, desde: date, hoy: date) -> DatosMercado:
+        datos = self.servicio.obtener(simbolo, desde, hoy)
+        if datos.moneda and datos.moneda.upper() != "COP":
+            raise ErrorPrecios(f"{simbolo}: la fuente entregó precios en {datos.moneda}, no en COP.")
+        return datos
 
 
