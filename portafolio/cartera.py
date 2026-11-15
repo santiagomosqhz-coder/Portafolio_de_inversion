@@ -62,5 +62,7 @@ class Cartera:
                               cantidad=cantidad, precio=precio_real, comision=0.0, moneda="COP",
                               fecha_venta_prevista=fecha_venta)
         return operacion, datos
+    def registrar_compra(self, operacion: Operacion, datos: DatosMercado, hoy: Optional[date] = None) -> None:
+        self.portafolio.registrar_operacion(operacion, splits=datos.lista_splits, hoy=hoy)
 
 
