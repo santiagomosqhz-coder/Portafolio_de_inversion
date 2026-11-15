@@ -18,3 +18,13 @@ from .utilidades import fmt_cop
 VentaPendiente = Tuple[Operacion, list]   # (operación de venta, splits para validarla)
 
 class Cartera:
+    SALDO_INICIAL = 10_000_000.0   # COP
+    MAX_DIAS_SIN_PRECIO = 7
+
+    portafolio: Portafolio
+    servicio: ServicioPrecios
+
+    def __init__(self, portafolio: Portafolio, servicio: ServicioPrecios):
+        self.portafolio = portafolio
+        self.servicio = servicio
+
