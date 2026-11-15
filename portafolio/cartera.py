@@ -64,5 +64,33 @@ class Cartera:
         return operacion, datos
     def registrar_compra(self, operacion: Operacion, datos: DatosMercado, hoy: Optional[date] = None) -> None:
         self.portafolio.registrar_operacion(operacion, splits=datos.lista_splits, hoy=hoy)
+    def preparar_ventas_pendientes(self, hoy: Optional[date] = None) -> Tuple[List[VentaPendiente], Dict[str, str]]:
+        """Ventas cuya fecha prevista ya llegó y aún no se registraron (consulta internet).
+
+        Una venta con fecha futura NO se prepara: solo se registra cuando su fecha llega.
+        """
+        hoy = hoy or date.today()
+        ops = list(self.portafolio.operaciones)
+        vendidas = {o.compra_id for o in ops if not o.es_compra and o.compra_id}
+        pendientes = [o for o in ops if o.es_compra and o.id not in vendidas
+                      and o.fecha_venta_prevista is not None and o.fecha_venta_prevista <= hoy]
+        listas: List[VentaPendiente] = []
+        errores: Dict[str, str] = {}
+        for compra in pendientes:
+            nombre = (Empresa.por_simbolo(compra.simbolo) or Empresa(compra.simbolo, compra.simbolo)).nombre
+            try:
+                datos = self.datos_en_cop(compra.simbolo, compra.fecha, hoy)
+                fecha_precio, precio_ajustado = datos.precio_en(compra.fecha_venta_prevista)
+                splits = datos.lista_splits
+                f_compra = Portafolio.factor_split(splits, compra.fecha)
+                f_venta = Portafolio.factor_split(splits, compra.fecha_venta_prevista)
+                venta = Operacion(
+                    simbolo=compra.simbolo, tipo=Operacion.VENTA, fecha=compra.fecha_venta_prevista,
+                    cantidad=compra.cantidad * f_compra / f_venta, precio=precio_ajustado * f_venta,
+                    comision=0.0, moneda="COP", compra_id=compra.id)
+                listas.append((venta, splits))
+            except (ErrorPrecios, ValueError) as exc:
+                errores[nombre] = f"No se pudo registrar la venta del {compra.fecha_venta_prevista}: {exc}"
+        return listas, errores
 
 
