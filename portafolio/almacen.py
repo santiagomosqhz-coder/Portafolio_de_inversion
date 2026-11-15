@@ -58,3 +58,8 @@ class Almacen:
         datos["operaciones"] = [o.a_dict() for o in operaciones]
         datos["renta_fija"] = [r.a_dict() for r in renta_fija]
         self._escribir(datos)
+
+    def guardar_cdt(self, cdts: List[Cdt]) -> None:
+        datos = self._leer()
+        datos["cdt"] = [c.a_dict() for c in cdts]
+        self._escribir(datos)
