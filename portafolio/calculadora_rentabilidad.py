@@ -5,3 +5,6 @@ from datetime import date
 from typing import List, Optional, Sequence, Tuple
 
 Flujo = Tuple[date, float]
+
+
+class CalculadoraRentabilidad:
