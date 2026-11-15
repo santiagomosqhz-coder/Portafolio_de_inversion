@@ -35,3 +35,13 @@ class Almacen:
         temporal = self.ruta.with_suffix(".tmp")
         temporal.write_text(json.dumps(datos, indent=2, ensure_ascii=False), encoding="utf-8")
         os.replace(temporal, self.ruta)   # escritura atómica: no deja el archivo a medias
+
+
+    def cargar(self) -> Tuple[List[Operacion], List[InversionRentaFija]]:
+        datos = self._leer()
+        try:
+            operaciones = [Operacion.desde_dict(d) for d in datos.get("operaciones", [])]
+            renta_fija = [InversionRentaFija.desde_dict(d) for d in datos.get("renta_fija", [])]
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(f"El archivo de datos {self.ruta} está dañado: {exc}") from exc
+        return operaciones, renta_fija
