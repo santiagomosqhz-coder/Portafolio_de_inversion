@@ -13,3 +13,6 @@ from .operacion import Operacion
 from .portafolio import Portafolio
 from .servicio_precios import ServicioPrecios
 from .utilidades import fmt_cop
+
+
+VentaPendiente = Tuple[Operacion, list]   # (operación de venta, splits para validarla)
