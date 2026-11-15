@@ -16,3 +16,5 @@ from .utilidades import fmt_cop
 
 
 VentaPendiente = Tuple[Operacion, list]   # (operación de venta, splits para validarla)
+
+class Cartera:
