@@ -9,3 +9,6 @@ from typing import List, Tuple
 from .cdt import Cdt
 from .operacion import Operacion
 from .renta_fija import InversionRentaFija
+
+
+class Almacen:
