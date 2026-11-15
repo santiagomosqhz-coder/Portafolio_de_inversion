@@ -16,3 +16,14 @@ class Almacen:
 
     def __init__(self, ruta: Path):
         self.ruta = Path(ruta)
+
+    def _leer(self) -> dict:
+        if not self.ruta.exists():
+            return {}
+        try:
+            datos = json.loads(self.ruta.read_text(encoding="utf-8"))
+        except ValueError as exc:
+            raise ValueError(f"El archivo de datos {self.ruta} está dañado: {exc}") from exc
+        if not isinstance(datos, dict):
+            raise ValueError(f"El archivo de datos {self.ruta} no tiene el formato esperado.")
+        return datos
