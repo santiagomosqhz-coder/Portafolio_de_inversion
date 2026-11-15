@@ -2,7 +2,7 @@
 
 Aplicación de escritorio en **Python (tkinter)** para registrar, monitorear y evaluar un portafolio compuesto por **renta variable** (acciones) y **renta fija** (CDT, bonos y TES). Calcula valoración, ganancias realizadas y no realizadas, dividendos, comisiones, **rentabilidad acumulada** y **rentabilidad efectiva anual (E. A.)**.
 
-![Diagrama UML](wiki/imagenes/diagrama_uml.png)
+![Diagrama UML](https://github.com/santiagomosqhz-coder/Portafolio_de_inversion/blob/29c888afa9b7d7e230c8a2b147ba8be37daa8264/Diagrama%20Uml.jpeg)
 
 ## Contenido
 
