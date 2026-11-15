@@ -27,3 +27,11 @@ class Almacen:
         if not isinstance(datos, dict):
             raise ValueError(f"El archivo de datos {self.ruta} no tiene el formato esperado.")
         return datos
+
+
+    def _escribir(self, datos: dict) -> None:
+        self.ruta.parent.mkdir(parents=True, exist_ok=True)
+        datos["version"] = self.VERSION
+        temporal = self.ruta.with_suffix(".tmp")
+        temporal.write_text(json.dumps(datos, indent=2, ensure_ascii=False), encoding="utf-8")
+        os.replace(temporal, self.ruta)   # escritura atómica: no deja el archivo a medias
