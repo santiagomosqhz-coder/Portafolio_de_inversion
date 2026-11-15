@@ -45,3 +45,9 @@ class Almacen:
         except (KeyError, TypeError, ValueError) as exc:
             raise ValueError(f"El archivo de datos {self.ruta} está dañado: {exc}") from exc
         return operaciones, renta_fija
+
+    def cargar_cdt(self) -> List[Cdt]:
+        try:
+            return [Cdt.desde_dict(d) for d in self._leer().get("cdt", [])]
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(f"El archivo de datos {self.ruta} está dañado: {exc}") from exc
