@@ -181,3 +181,32 @@ class PruebasRentabilidad(unittest.TestCase):
     def test_perdida_da_ea_negativa(self):
         r = CalculadoraRentabilidad.rentabilidad_ea([(date(2024, 1, 1), -100), (date(2025, 1, 1), 90)])
         self.assertLess(r, 0)
+
+
+class PruebasFuentesYAlmacen(unittest.TestCase):
+    def test_respaldo_usa_segunda_fuente(self):
+        malo, bueno = ProveedorFalso(falla=True), ProveedorFalso(cierres={"AAA": {date(2025, 1, 2): 1.0}})
+        datos = ServicioPrecios([malo, bueno]).obtener("AAA", date(2025, 1, 2), HOY)
+        self.assertEqual(datos.simbolo, "AAA")
+        self.assertEqual((malo.llamadas, bueno.llamadas), (1, 1))
+
+    def test_si_todo_falla_hay_error_claro_y_no_datos_inventados(self):
+        with self.assertRaises(ErrorPrecios) as ctx:
+            ServicioPrecios([ProveedorFalso(falla=True)]).obtener("AAA", date(2025, 1, 2), HOY)
+        self.assertIn("No se pudieron obtener precios reales", str(ctx.exception))
+        p = portafolio_vacio()
+        p.registrar_operacion(op("COMPRA", date(2025, 1, 2), 1, 10), hoy=HOY)
+        a = p.analizar(ServicioPrecios([ProveedorFalso(falla=True)]), HOY)
+        self.assertEqual(a.posiciones, [])
+        self.assertIn("AAA", a.errores)
+        self.assertFalse(a.esta_completo)
+
+    def test_cache_evita_consultar_dos_veces(self):
+        prov = ProveedorFalso(cierres={"AAA": {date(2025, 1, 2): 1.0}})
+        s = ServicioPrecios([prov])
+        s.obtener("AAA", date(2025, 1, 2), HOY)
+        s.obtener("aaa", date(2025, 1, 2), HOY)
+        self.assertEqual(prov.llamadas, 1)
+        s.limpiar()
+        s.obtener("AAA", date(2025, 1, 2), HOY)
+        self.assertEqual(prov.llamadas, 2)
