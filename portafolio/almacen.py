@@ -1,0 +1,65 @@
+"""Guarda y lee el portafolio en un archivo JSON local."""
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+from typing import List, Tuple
+
+from .cdt import Cdt
+from .operacion import Operacion
+from .renta_fija import InversionRentaFija
+
+
+class Almacen:
+    VERSION = 2
+
+    def __init__(self, ruta: Path):
+        self.ruta = Path(ruta)
+
+    def _leer(self) -> dict:
+        if not self.ruta.exists():
+            return {}
+        try:
+            datos = json.loads(self.ruta.read_text(encoding="utf-8"))
+        except ValueError as exc:
+            raise ValueError(f"El archivo de datos {self.ruta} está dañado: {exc}") from exc
+        if not isinstance(datos, dict):
+            raise ValueError(f"El archivo de datos {self.ruta} no tiene el formato esperado.")
+        return datos
+
+
+    def _escribir(self, datos: dict) -> None:
+        self.ruta.parent.mkdir(parents=True, exist_ok=True)
+        datos["version"] = self.VERSION
+        temporal = self.ruta.with_suffix(".tmp")
+        temporal.write_text(json.dumps(datos, indent=2, ensure_ascii=False), encoding="utf-8")
+        os.replace(temporal, self.ruta)   # escritura atómica: no deja el archivo a medias
+
+
+    def cargar(self) -> Tuple[List[Operacion], List[InversionRentaFija]]:
+        datos = self._leer()
+        try:
+            operaciones = [Operacion.desde_dict(d) for d in datos.get("operaciones", [])]
+            renta_fija = [InversionRentaFija.desde_dict(d) for d in datos.get("renta_fija", [])]
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(f"El archivo de datos {self.ruta} está dañado: {exc}") from exc
+        return operaciones, renta_fija
+
+    def cargar_cdt(self) -> List[Cdt]:
+        try:
+            return [Cdt.desde_dict(d) for d in self._leer().get("cdt", [])]
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(f"El archivo de datos {self.ruta} está dañado: {exc}") from exc
+
+
+    def guardar(self, operaciones: List[Operacion], renta_fija: List[InversionRentaFija]) -> None:
+        datos = self._leer()   # conserva lo demás (p. ej. los CDT)
+        datos["operaciones"] = [o.a_dict() for o in operaciones]
+        datos["renta_fija"] = [r.a_dict() for r in renta_fija]
+        self._escribir(datos)
+
+    def guardar_cdt(self, cdts: List[Cdt]) -> None:
+        datos = self._leer()
+        datos["cdt"] = [c.a_dict() for c in cdts]
+        self._escribir(datos)
