@@ -80,3 +80,39 @@ class PruebasAcciones(unittest.TestCase):
         self.assertAlmostEqual(pos.no_realizada, 0.0)
         self.assertAlmostEqual(pos.valor_actual, 0.0)
 
+    def test_venta_mayor_a_lo_que_se_tiene_se_rechaza(self):
+        p = portafolio_vacio()
+        p.registrar_operacion(op("COMPRA", date(2025, 1, 2), 5, 10), hoy=HOY)
+        with self.assertRaises(ValueError):
+            p.registrar_operacion(op("VENTA", date(2025, 2, 3), 6, 12), hoy=HOY)
+        with self.assertRaises(ValueError):   # vender antes de comprar
+            p.registrar_operacion(op("VENTA", date(2024, 12, 1), 1, 12), hoy=HOY)
+
+    def test_venta_posterior_a_split_con_cantidades_como_se_operaron(self):
+        p = portafolio_vacio()
+        p.registrar_operacion(op("COMPRA", date(2025, 1, 2), 10, 100), hoy=HOY)
+        venta = op("VENTA", date(2025, 4, 1), 15, 60)       # ya hay 20 acciones tras el split 2:1
+        p.registrar_operacion(venta, splits=[(date(2025, 3, 1), 2.0)], hoy=HOY)
+        with self.assertRaises(ValueError):                 # sin considerar el split sería inválida
+            p2 = portafolio_vacio()
+            p2.registrar_operacion(op("COMPRA", date(2025, 1, 2), 10, 100), hoy=HOY)
+            p2.registrar_operacion(venta, hoy=HOY)
+
+    def test_validaciones(self):
+        p = portafolio_vacio()
+        with self.assertRaises(ValueError):
+            p.registrar_operacion(op("COMPRA", date(2025, 1, 2), 0, 10), hoy=HOY)
+        with self.assertRaises(ValueError):
+            p.registrar_operacion(op("COMPRA", date(2026, 1, 2), 1, 10), hoy=HOY)
+        p.registrar_operacion(op("COMPRA", date(2025, 1, 2), 1, 10), hoy=HOY)
+        with self.assertRaises(ValueError):                 # misma empresa, otra moneda
+            p.registrar_operacion(op("COMPRA", date(2025, 1, 3), 1, 10, m="COP"), hoy=HOY)
+
+    def test_monedas_distintas_no_se_suman(self):
+        p = portafolio_vacio()
+        p.registrar_operacion(op("COMPRA", date(2025, 1, 2), 1, 10, s="AAA", m="USD"), hoy=HOY)
+        p.registrar_operacion(op("COMPRA", date(2025, 1, 2), 1, 10, s="BBB", m="COP"), hoy=HOY)
+        prov = ProveedorFalso(cierres={"AAA": {date(2025, 1, 2): 10}, "BBB": {date(2025, 1, 2): 10}})
+        a = p.analizar(ServicioPrecios([prov]), HOY)
+        self.assertEqual(set(a.resumenes), {"USD", "COP"})
+        self.assertTrue(any("varias monedas" in x for x in a.advertencias))
