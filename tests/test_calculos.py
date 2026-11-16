@@ -364,3 +364,15 @@ class PruebasCdtYConversion(unittest.TestCase):
             ProveedorCOP(base).obtener("NKE", date(2026, 1, 1), date(2026, 1, 10))
 
 
+
+class PruebasCatalogo(unittest.TestCase):
+    def test_nombres_conocidos_no_abreviaturas(self):
+        nombres = [e.nombre for e in Empresa.todas()]
+        self.assertIn("Nike", nombres)
+        self.assertIn("Coca-Cola", nombres)
+        self.assertNotIn("KO", nombres)
+        self.assertEqual(Empresa.por_nombre("Coca-Cola").simbolo, "KO")
+
+
+if __name__ == "__main__":
+    unittest.main()
