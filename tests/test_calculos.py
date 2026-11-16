@@ -160,3 +160,24 @@ class PruebasRentaFija(unittest.TestCase):
         self.assertAlmostEqual(r.valor_rv, 1100)
         self.assertAlmostEqual(r.pct_rv + r.pct_rf, 1.0)
         self.assertGreater(r.valor_rf, 1_000_000)
+
+
+class PruebasRentabilidad(unittest.TestCase):
+    def test_xirr_un_anio(self):
+        r = CalculadoraRentabilidad.xirr([(date(2024, 1, 1), -100), (date(2025, 1, 1) if False else date(2024, 12, 31), 110)])
+        self.assertAlmostEqual(r, 0.10, places=6)   # 365 días
+
+    def test_xirr_dos_aportes(self):
+        flujos = [(date(2024, 1, 1), -100), (date(2024, 7, 1), -100), (date(2025, 1, 1), 230)]
+        r = CalculadoraRentabilidad.xirr(flujos)
+        d = lambda x: (x - date(2024, 1, 1)).days / 365  # noqa: E731
+        vpn = sum(m / (1 + r) ** d(f) for f, m in flujos)
+        self.assertAlmostEqual(vpn, 0.0, places=6)
+
+    def test_ea_no_se_calcula_con_menos_de_30_dias_o_sin_entradas(self):
+        self.assertIsNone(CalculadoraRentabilidad.rentabilidad_ea([(date(2025, 1, 1), -100), (date(2025, 1, 10), 101)]))
+        self.assertIsNone(CalculadoraRentabilidad.xirr([(date(2025, 1, 1), -100), (date(2025, 6, 1), -5)]))
+
+    def test_perdida_da_ea_negativa(self):
+        r = CalculadoraRentabilidad.rentabilidad_ea([(date(2024, 1, 1), -100), (date(2025, 1, 1), 90)])
+        self.assertLess(r, 0)
