@@ -248,3 +248,77 @@ def cartera_con(cierres, splits=None):
     prov = ProveedorFalso(cierres={"NKE": cierres}, splits={"NKE": splits or {}}, moneda="COP")
     return Cartera(p, ServicioPrecios([prov])), p
 
+
+class PruebasCartera(unittest.TestCase):
+    def test_saldo_inicial_y_compra_abierta(self):
+        cartera, _ = cartera_con({date(2026, 1, 5): 100_000, date(2026, 6, 30): 110_000})
+        self.assertEqual(cartera.saldo(), 10_000_000)
+        op, datos = cartera.preparar_compra(NIKE, 10, date(2026, 1, 5), date(2026, 12, 1), HOY_26)
+        cartera.registrar_compra(op, datos, HOY_26)
+        self.assertAlmostEqual(cartera.saldo(), 9_000_000)
+        e = cartera.estado(HOY_26)
+        self.assertEqual(len(e.abiertas), 1)
+        self.assertAlmostEqual(e.valor_abiertas, 1_100_000)
+        self.assertAlmostEqual(e.no_realizada, 100_000)
+        self.assertAlmostEqual(e.realizada, 0.0)
+        self.assertAlmostEqual(e.valor_total, 9_000_000 + 1_100_000)
+        self.assertEqual(e.abiertas[0].empresa, "Nike")
+
+    def test_venta_futura_no_se_registra_y_al_llegar_su_fecha_abona_el_dinero(self):
+        cartera, p = cartera_con({date(2026, 1, 5): 100_000, date(2026, 3, 2): 120_000, date(2026, 6, 30): 110_000})
+        op, datos = cartera.preparar_compra(NIKE, 10, date(2026, 1, 5), date(2026, 3, 2), date(2026, 2, 1))
+        cartera.registrar_compra(op, datos, date(2026, 2, 1))
+        ventas, errores = cartera.preparar_ventas_pendientes(date(2026, 2, 1))   # la fecha aún no llega
+        self.assertEqual((ventas, errores), ([], {}))
+        self.assertEqual(len(p.operaciones), 1)
+        ventas, errores = cartera.preparar_ventas_pendientes(HOY_26)             # ya llegó
+        self.assertEqual(cartera.registrar_ventas(ventas, HOY_26), {})
+        self.assertEqual(len(p.operaciones), 2)
+        self.assertAlmostEqual(cartera.saldo(), 10_000_000 - 1_000_000 + 1_200_000)
+        e = cartera.estado(HOY_26)
+        self.assertEqual((len(e.abiertas), len(e.cerradas)), (0, 1))
+        self.assertAlmostEqual(e.realizada, 200_000)
+        self.assertAlmostEqual(e.valor_abiertas, 0.0)
+        self.assertEqual(cartera.preparar_ventas_pendientes(HOY_26)[0], [])      # no se repite
+
+    def test_saldo_insuficiente_y_fechas_invalidas(self):
+        cartera, _ = cartera_con({date(2026, 1, 5): 1_000_000, date(2026, 6, 30): 1_000_000})
+        with self.assertRaisesRegex(ValueError, "Saldo insuficiente"):
+            cartera.preparar_compra(NIKE, 11, date(2026, 1, 5), date(2026, 12, 1), HOY_26)
+        with self.assertRaises(ValueError):
+            cartera.preparar_compra(NIKE, 1, date(2026, 1, 5), date(2026, 1, 5), HOY_26)   # venta no posterior
+        with self.assertRaises(ValueError):
+            cartera.preparar_compra(NIKE, 1, date(2026, 8, 1), date(2026, 9, 1), HOY_26)   # compra futura
+        with self.assertRaises(ValueError):
+            cartera.preparar_compra(NIKE, 0, date(2026, 1, 5), date(2026, 12, 1), HOY_26)
+
+    def test_split_posterior_a_la_compra(self):
+        # Precio ajustado 50.000 y split 2:1 posterior: se pagaron 100.000 por acción, hoy hay el doble de acciones
+        cartera, _ = cartera_con({date(2026, 1, 5): 50_000, date(2026, 6, 30): 60_000}, {date(2026, 3, 1): 2.0})
+        op, datos = cartera.preparar_compra(NIKE, 10, date(2026, 1, 5), date(2026, 12, 1), HOY_26)
+        self.assertAlmostEqual(op.precio, 100_000)
+        cartera.registrar_compra(op, datos, HOY_26)
+        e = cartera.estado(HOY_26)
+        self.assertAlmostEqual(e.abiertas[0].acciones, 20)
+        self.assertAlmostEqual(e.valor_abiertas, 1_200_000)
+        self.assertAlmostEqual(e.no_realizada, 200_000)
+
+    def test_sin_precios_no_hay_datos_inventados(self):
+        p = portafolio_vacio()
+        cartera = Cartera(p, ServicioPrecios([ProveedorFalso(falla=True, moneda="COP")]))
+        with self.assertRaises(ErrorPrecios):
+            cartera.preparar_compra(NIKE, 1, date(2026, 1, 5), date(2026, 12, 1), HOY_26)
+
+    def test_dos_compras_de_la_misma_empresa_se_miden_por_separado(self):
+        cartera, _ = cartera_con({date(2026, 1, 5): 100_000, date(2026, 2, 2): 200_000, date(2026, 6, 30): 150_000})
+        for f in (date(2026, 1, 5), date(2026, 2, 2)):
+            op, datos = cartera.preparar_compra(NIKE, 1, f, date(2026, 12, 1), HOY_26)
+            cartera.registrar_compra(op, datos, HOY_26)
+        e = cartera.estado(HOY_26)
+        self.assertEqual([round(l.ganancia_no_realizada) for l in e.abiertas], [50_000, -50_000])
+        self.assertAlmostEqual(e.no_realizada, 0.0)
+
+
+HOY_26 = date(2026, 6, 30)
+
+
