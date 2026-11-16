@@ -133,3 +133,42 @@ def a_dot(clases, rels):
     lineas.append("}")
     return "\n".join(lineas)
 
+
+def a_mermaid(clases, rels):
+    herencia, asociacion, dependencia = rels
+    lineas = ["classDiagram"]
+    for nombre, (cls, _) in sorted(clases.items()):
+        lineas.append(f"  class {nombre} {{")
+        for n, t in atributos(cls):
+            tipo = re.sub(r"[\[\]]", "~", corto(t)).replace(",", " ")
+            lineas.append(f"    +{tipo} {n}")
+        for n, p, _ in metodos(cls):
+            lineas.append(f"    +{n}()" if p is not None else f"    +{n}")
+        lineas.append("  }")
+    for hija, madre in sorted(herencia):
+        lineas.append(f"  {madre} <|-- {hija}")
+    for a, b in sorted(asociacion):
+        lineas.append(f"  {a} o-- {b}")
+    for a, b in sorted(dependencia):
+        lineas.append(f"  {a} ..> {b}")
+    return "\n".join(lineas)
+
+
+def main():
+    clases = cargar_clases()
+    rels = relaciones(clases)
+    dot = a_dot(clases, rels)
+    (RAIZ / "wiki" / "imagenes").mkdir(parents=True, exist_ok=True)
+    (RAIZ / "wiki" / "diagrama_uml.dot").write_text(dot, encoding="utf-8")
+    (RAIZ / "wiki" / "diagrama_uml.mmd").write_text(a_mermaid(clases, rels), encoding="utf-8")
+    if shutil.which("dot"):
+        subprocess.run(["dot", "-Tpng", str(RAIZ / "wiki" / "diagrama_uml.dot"), "-o",
+                        str(RAIZ / "wiki" / "imagenes" / "diagrama_uml.png")], check=True)
+        print("Generado wiki/imagenes/diagrama_uml.png")
+    else:
+        print("Graphviz no está instalado: se generó el .dot y el .mmd, pero no el PNG.")
+    print(f"{len(clases)} clases, {len(rels[0])} herencias, {len(rels[1])} asociaciones, {len(rels[2])} dependencias.")
+
+
+if __name__ == "__main__":
+    main()
