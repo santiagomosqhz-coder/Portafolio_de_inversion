@@ -16,3 +16,14 @@ from portafolio.renta_fija import InversionRentaFija
 from portafolio.servicio_precios import ServicioPrecios
 from portafolio.utilidades import parse_fecha, parse_numero
 from tests.proveedor_falso import ProveedorFalso
+
+HOY = date(2025, 6, 30)
+
+
+def portafolio_vacio():
+    carpeta = tempfile.mkdtemp()
+    return Portafolio(Almacen(Path(carpeta) / "p.json"))
+
+
+def op(tipo, f, q, p, c=0.0, s="AAA", m="USD"):
+    return Operacion(simbolo=s, tipo=tipo, fecha=f, cantidad=q, precio=p, comision=c, moneda=m)
