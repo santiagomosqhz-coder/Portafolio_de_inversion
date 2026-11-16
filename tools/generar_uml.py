@@ -96,3 +96,40 @@ def relaciones(clases):
         dependencia.discard((hija, madre))
     return herencia, asociacion, dependencia
 
+
+
+def esc(texto: str) -> str:
+    for a, b in (("\\", "\\\\"), ("{", "\\{"), ("}", "\\}"), ("|", "\\|"), ("<", "\\<"), (">", "\\>"), ('"', "'")):
+        texto = texto.replace(a, b)
+    return texto
+
+
+def corto(tipo: str) -> str:
+    return re.sub(r"\s+", " ", tipo.replace("typing.", "").replace("pandas.core.series.", "pd.").replace("pd.Series", "Series")
+                  .replace("pd.DataFrame", "DataFrame"))[:44]
+
+
+def a_dot(clases, rels):
+    herencia, asociacion, dependencia = rels
+    lineas = ['digraph UML {', '  rankdir=TB; nodesep=0.35; ranksep=0.7; dpi=140;',
+              '  node [shape=record, fontname="DejaVu Sans", fontsize=9, style=filled];',
+              '  edge [fontname="DejaVu Sans", fontsize=8];']
+    for nombre, (cls, _) in sorted(clases.items()):
+        externas = [b.__name__ for b in cls.__bases__ if b.__name__ not in clases and b is not object]
+        estereo = f"«{externas[0]}»\\n" if externas else ""
+        abstracta = "«abstracta»\\n" if inspect.isabstract(cls) else ""
+        attrs = "".join(f"+ {esc(n)}: {esc(corto(t))}\\l" for n, t in atributos(cls))
+        mets = "".join(
+            (f"+ {esc(n)} «propiedad»\\l" if p is None else f"+ {esc(n)}({esc(', '.join(p))})\\l")
+            for n, p, _ in metodos(cls))
+        lineas.append(f'  {nombre} [fillcolor="{COLOR[CAPA.get(nombre, "modelo")]}", '
+                      f'label="{{{abstracta}{estereo}{nombre}|{attrs}|{mets}}}"];')
+    for hija, madre in sorted(herencia):
+        lineas.append(f"  {hija} -> {madre} [arrowhead=empty];")
+    for a, b in sorted(asociacion):
+        lineas.append(f'  {a} -> {b} [arrowhead=vee, arrowtail=odiamond, dir=both, label="tiene"];')
+    for a, b in sorted(dependencia):
+        lineas.append(f'  {a} -> {b} [arrowhead=vee, style=dashed, color="#6B7280"];')
+    lineas.append("}")
+    return "\n".join(lineas)
+
