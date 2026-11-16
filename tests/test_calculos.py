@@ -116,3 +116,36 @@ class PruebasAcciones(unittest.TestCase):
         a = p.analizar(ServicioPrecios([prov]), HOY)
         self.assertEqual(set(a.resumenes), {"USD", "COP"})
         self.assertTrue(any("varias monedas" in x for x in a.advertencias))
+
+class PruebasRentaFija(unittest.TestCase):
+    def cdt(self, **kw):
+        base = dict(tipo="CDT", nombre="Banco X", fecha_compra=date(2025, 1, 1), capital=1_000_000,
+                    tasa_ea=0.12, fecha_vencimiento=date(2026, 1, 1), comision=0.0, moneda="COP")
+        base.update(kw)
+        return InversionRentaFija(**base)
+
+    def test_cdt_vigente_causa_intereses_a_tasa_ea(self):
+        c = self.cdt()
+        dias = (HOY - c.fecha_compra).days
+        esperado = 1_000_000 * 1.12 ** (dias / 365)
+        self.assertAlmostEqual(c.valor_actual(HOY), esperado, places=4)
+        self.assertEqual(c.estado(HOY), "VIGENTE")
+        self.assertFalse(c.es_realizada(HOY))
+
+    def test_cdt_vencido_cobra_capital_mas_intereses(self):
+        c = self.cdt(fecha_vencimiento=date(2026, 1, 1))
+        hoy = date(2026, 3, 1)
+        self.assertEqual(c.estado(hoy), "VENCIDA")
+        self.assertAlmostEqual(c.valor_actual(hoy), 1_120_000, places=2)  # 365 días exactos
+        self.assertAlmostEqual(c.ganancia(hoy), 120_000, places=2)
+        self.assertEqual(c.valor_vigente(hoy), 0.0)
+
+    def test_comision_y_venta_anticipada(self):
+        c = self.cdt(comision=2_000, fecha_venta=date(2025, 4, 1), valor_venta=1_020_000, comision_venta=1_000)
+        c.validar(HOY)
+        self.assertEqual(c.estado(HOY), "VENDIDA")
+        self.assertAlmostEqual(c.ganancia(HOY), 1_020_000 - 1_000 - 1_002_000)
+
+    def test_valor_de_mercado_manual(self):
+        c = self.cdt(tipo="TES", valor_mercado=1_050_000, fecha_valor_mercado=date(2025, 6, 1))
+        self.assertEqual(c.valor_actual(HOY), 1_050_000)
