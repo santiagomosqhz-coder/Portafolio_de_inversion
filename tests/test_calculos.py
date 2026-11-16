@@ -322,3 +322,45 @@ class PruebasCartera(unittest.TestCase):
 HOY_26 = date(2026, 6, 30)
 
 
+class PruebasCdtYConversion(unittest.TestCase):
+    def test_rentabilidad_diaria_y_anual(self):
+        c = Cdt(monto=1_000_000, tasa_ea=0.12, fuente="Banco de ejemplo", fecha_tasa=date(2026, 6, 1))
+        self.assertAlmostEqual(c.rentabilidad_diaria, 1.12 ** (1 / 365) - 1, places=12)
+        self.assertAlmostEqual((1 + c.rentabilidad_diaria) ** 365 - 1, 0.12, places=9)
+        self.assertAlmostEqual(c.ganancia_anual_estimada, 120_000, places=4)
+        self.assertAlmostEqual(c.ganancia_diaria, 1_000_000 * c.rentabilidad_diaria)
+
+    def test_validaciones_cdt(self):
+        base = dict(monto=1000, tasa_ea=0.1, fuente="X", fecha_tasa=date(2026, 1, 1))
+        for cambio in ({"monto": 0}, {"tasa_ea": 0}, {"tasa_ea": 11.5}, {"fuente": " "}, {"fecha_tasa": date(2030, 1, 1)}):
+            with self.assertRaises(ValueError):
+                Cdt(**{**base, **cambio}).validar(HOY_26)
+        Cdt(**base).validar(HOY_26)
+
+    def test_cdt_se_guarda_sin_borrar_operaciones(self):
+        ruta = Path(tempfile.mkdtemp()) / "p.json"
+        p = Portafolio(Almacen(ruta))
+        p.registrar_operacion(op("COMPRA", date(2026, 1, 2), 1, 10, m="COP"), hoy=HOY_26)
+        p.registrar_cdt(Cdt(5_000_000, 0.11, "Banco X", date(2026, 6, 1)), hoy=HOY_26)
+        p.registrar_operacion(op("COMPRA", date(2026, 1, 3), 1, 10, m="COP"), hoy=HOY_26)
+        q = Portafolio(Almacen(ruta))
+        self.assertEqual((len(q.operaciones), len(q.cdts)), (2, 1))
+        q.eliminar_cdt(q.cdts[0].id)
+        self.assertEqual((len(Portafolio(Almacen(ruta)).operaciones), len(Portafolio(Almacen(ruta)).cdts)), (2, 0))
+
+    def test_conversion_usd_a_cop_dia_por_dia(self):
+        base = ProveedorFalso(cierres={"NKE": {date(2026, 1, 5): 100.0, date(2026, 1, 6): 110.0},
+                                       "COP=X": {date(2026, 1, 5): 4000.0, date(2026, 1, 6): 4100.0}},
+                              dividendos={"NKE": {date(2026, 1, 6): 1.0}})
+        datos = ProveedorCOP(base).obtener("NKE", date(2026, 1, 1), date(2026, 1, 10))
+        self.assertEqual(datos.moneda, "COP")
+        self.assertEqual(list(datos.cierres.round(2)), [400_000.0, 451_000.0])
+        self.assertAlmostEqual(float(datos.dividendos.iloc[0]), 4100.0)
+        self.assertIn("COP=X", datos.fuente)
+
+    def test_conversion_falla_si_no_hay_tasa(self):
+        base = ProveedorFalso(cierres={"NKE": {date(2026, 1, 5): 100.0}})
+        with self.assertRaisesRegex(ErrorPrecios, "tasa de cambio"):
+            ProveedorCOP(base).obtener("NKE", date(2026, 1, 1), date(2026, 1, 10))
+
+
