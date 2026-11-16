@@ -210,3 +210,15 @@ class PruebasFuentesYAlmacen(unittest.TestCase):
         s.limpiar()
         s.obtener("AAA", date(2025, 1, 2), HOY)
         self.assertEqual(prov.llamadas, 2)
+
+    def test_guardado_y_recarga(self):
+        carpeta = Path(tempfile.mkdtemp()) / "sub" / "p.json"
+        p = Portafolio(Almacen(carpeta))
+        p.registrar_operacion(op("COMPRA", date(2025, 1, 2), 3, 10.5, 1.0), hoy=HOY)
+        p.registrar_renta_fija(InversionRentaFija("BONO", "Emisor", date(2025, 1, 1), 100.0, 0.08,
+                                                  date(2027, 1, 1)), hoy=HOY)
+        q = Portafolio(Almacen(carpeta))
+        self.assertEqual(q.operaciones[0], p.operaciones[0])
+        self.assertEqual(q.renta_fija[0], p.renta_fija[0])
+        q.eliminar_operacion(q.operaciones[0].id)
+        self.assertEqual(Portafolio(Almacen(carpeta)).operaciones, [])
