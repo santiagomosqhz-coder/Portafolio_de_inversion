@@ -222,3 +222,29 @@ class PruebasFuentesYAlmacen(unittest.TestCase):
         self.assertEqual(q.renta_fija[0], p.renta_fija[0])
         q.eliminar_operacion(q.operaciones[0].id)
         self.assertEqual(Portafolio(Almacen(carpeta)).operaciones, [])
+
+
+class PruebasEntradas(unittest.TestCase):
+    def test_numeros(self):
+        for texto, esperado in [("1234.5", 1234.5), ("1,234.5", 1234.5), ("1.234,5", 1234.5),
+                                ("2.000.000", 2_000_000), ("11,5", 11.5), ("0", 0.0)]:
+            self.assertAlmostEqual(parse_numero(texto), esperado, msg=texto)
+        for malo in ("", "abc", "nan", "inf"):
+            with self.assertRaises(ValueError):
+                parse_numero(malo)
+
+    def test_fechas(self):
+        self.assertEqual(parse_fecha("2025-03-04"), date(2025, 3, 4))
+        self.assertEqual(parse_fecha("04/03/2025"), date(2025, 3, 4))
+        with self.assertRaises(ValueError):
+            parse_fecha("2025-13-45")
+
+
+NIKE = Empresa.por_nombre("Nike")
+
+
+def cartera_con(cierres, splits=None):
+    p = portafolio_vacio()
+    prov = ProveedorFalso(cierres={"NKE": cierres}, splits={"NKE": splits or {}}, moneda="COP")
+    return Cartera(p, ServicioPrecios([prov])), p
+
