@@ -149,3 +149,14 @@ class PruebasRentaFija(unittest.TestCase):
     def test_valor_de_mercado_manual(self):
         c = self.cdt(tipo="TES", valor_mercado=1_050_000, fecha_valor_mercado=date(2025, 6, 1))
         self.assertEqual(c.valor_actual(HOY), 1_050_000)
+    def test_resumen_mezcla_acciones_y_renta_fija(self):
+        p = portafolio_vacio()
+        p.registrar_operacion(op("COMPRA", date(2025, 1, 2), 10, 100, m="COP"), hoy=HOY)
+        p.registrar_renta_fija(self.cdt(), hoy=HOY)
+        prov = ProveedorFalso(cierres={"AAA": {date(2025, 1, 2): 100, date(2025, 6, 30): 110}})
+        r = p.analizar(ServicioPrecios([prov]), HOY).resumenes["COP"]
+        self.assertAlmostEqual(r.invertido_rv, 1000)
+        self.assertAlmostEqual(r.invertido_rf, 1_000_000)
+        self.assertAlmostEqual(r.valor_rv, 1100)
+        self.assertAlmostEqual(r.pct_rv + r.pct_rf, 1.0)
+        self.assertGreater(r.valor_rf, 1_000_000)
